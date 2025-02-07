@@ -1,52 +1,51 @@
+require('dotenv').config(); // Load environment variables from .env
 const express = require('express');
-const mongoose = require('mongoose');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const cors = require('cors');
 
-// app initialized
-const app = express();
-const PORT = 3000;
+// Import routes
+const laptopRoutes = require('./routes/laptop.routes'); // Ensure your routes are in a separate file
 
-// middleware
+// Initialize app
+const app = express();
+
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// connect to MongoDB
-mongoose.connect('mongodb://localhost:E-Commerce_Web_Application/Laptop-Shop', { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.log(err));
+const uri = "mongodb+srv://varunmenon2004:India2025@e-commercewebsitecluste.f7h7s.mongodb.net/?retryWrites=true&w=majority&appName=E-CommerceWebsiteCluster";
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+run().catch(console.dir);
 
-// MongoDB Schema and Model
-const LaptopSchema = new mongoose.Schema({
-    name: String,
-    price: Number,
-    inCart: { type: Boolean, default: false },
+// Use laptop routes for handling CRUD operations
+app.use('/api/laptops', laptopRoutes);
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('Laptop E-Commerce Backend API is running');
 });
 
-const Laptop = mongoose.model('Laptop', LaptopSchema);
-
-// routes
-app.get('/laptops', async (req, res) => {
-    const laptops = await Laptop.find();
-    res.json(laptops);
-});
-
-app.post('/laptops', async (req, res) => {
-    const newLaptop = new Laptop(req.body);
-    await newLaptop.save();
-    res.status(201).json(newLaptop);
-});
-
-app.put('/laptops/:id', async (req, res) => {
-    const { id } = req.params;
-    const updatedLaptop = await Laptop.findByIdAndUpdate(id, req.body, { new: true });
-    res.json(updatedLaptop);
-});
-
-app.delete('/laptops/:id', async (req, res) => {
-    const { id } = req.params;
-    await Laptop.findByIdAndDelete(id);
-    res.status(204).end();
-});
-
-// start server
+// Start the server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
